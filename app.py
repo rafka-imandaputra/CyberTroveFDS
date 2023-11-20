@@ -2,44 +2,18 @@ import streamlit as st
 import joblib
 import numpy as np
 
-# Load the SVC model
 model_path = 'model_o_0.5_u_0.7.joblib'
 model = joblib.load(model_path)
 
-# Function to predict fraud
 def predict_fraud_proba(features):
-    # Convert input features to numpy array
     input_data = np.array(features).reshape(1, -1)
+    proba = model.predict_proba(input_data)[:, 1]
 
-    # Make prediction
-    # proba = model.predict_proba(input_data)[:, 1]
-    proba = model.predict(input_data) #[:, 1]
     return proba[0]
 
-# Streamlit app
 def main():
     st.title("Fraud Detection App - CyberTrove Politeknik Negeri Bandung")
 
-    # # Input fields
-    # features = [
-    #     'income', 'name_email_similarity', 'prev_address_months_count',
-    #     'current_address_months_count', 'customer_age', 'days_since_request',
-    #     'intended_balcon_amount', 'zip_count_4w', 'velocity_6h', 'velocity_24h',
-    #     'velocity_4w', 'bank_branch_count_8w',
-    #     'date_of_birth_distinct_emails_4w', 'credit_risk_score',
-    #     'email_is_free', 'phone_home_valid', 'phone_mobile_valid',
-    #     'bank_months_count', 'has_other_cards', 'proposed_credit_limit',
-    #     'foreign_request', 'session_length_in_minutes', 'keep_alive_session',
-    #     'device_distinct_emails_8w', 'device_fraud_count', 'month'
-    # ]
-
-
-    # # Input form
-    # input_values = []
-    # for feature in features:
-    #     input_values.append(st.number_input(f"Enter {feature}", key=feature))
-
-    # Input fields with custom ranges
     features = {
         'income': st.slider('Income - Annual income of the applicant (in decile form). Ranges between 0.1-0.9', min_value=0.0, max_value=1.0, step=0.01, key='income'),
         'name_email_similarity': st.slider('Name-Email Similarity - Metric of similarity between email and applicants name. Higher values represent higher similarity. Ranges between [0, 1].', min_value=0.0, max_value=1.0, step=0.01, key='name_email_similarity'),
@@ -69,28 +43,17 @@ def main():
         'month': st.slider('Month - : Month where the application was made. Ranges between [0, 7].', min_value=0, max_value=7, step=1, key='month')
     }
 
-    # Convert the slider values to a list
     input_values = [value for value in features.values()]
 
-    # Prediction button
     if st.button("Predict Fraud"):
-        # Make prediction and get probability
         proba = predict_fraud_proba(input_values)
-
-        # Display result
-        st.write(f"Probability of Fraud: {proba:.4f}")
-
-        # Determine if in the specified range
-        if proba == 1:
-            st.warning("Fraud")
+        st.write(f"Probability of Fraud: {proba*100:.3f} %")
+        if 0.4 <= proba <= 0.6:
+            st.warning("Model Prediction: **Like Fraud** (Probability in the range 0.4 to 0.6)!")
+        elif proba < 0.4:
+            st.success("Model Prediction: **No Fraud Detected** (Probability less than 0.4).")
         else:
-            st.error("No-Fraud")
-        # if 0.4 <= proba <= 0.6:
-        #     st.warning("Likely Fraud (Probability in the range 0.4 to 0.6)!")
-        # elif proba < 0.4:
-        #     st.success("No Fraud Detected (Probability less than 0.4).")
-        # else:
-        #     st.error("Fraud Detected (Probability greater than 0.6).")
+            st.error("Model Prediction: **Fraud Detected** (Probability greater than 0.6).")
 
 
 if __name__ == "__main__":
