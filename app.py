@@ -1,19 +1,26 @@
 import streamlit as st
 import joblib
 import numpy as np
+import requests
 
 model_path = 'model_o_0.5_u_0.7.joblib'
 model = joblib.load(model_path)
+api_url = 'https://dapoernisrina.com/fds/api/base'
 
 def predict_fraud_proba(features):
     input_data = np.array(features).reshape(1, -1)
     proba = model.predict_proba(input_data)[:, 1]
-
     return proba[0]
+
+def send_api_request(features, proba):
+    payload = {**features, 'predict_fraud_proba': proba}
+    response = requests.post(api_url, json=payload)
+    return response.json()
 
 def main():
     st.title("Fraud Detection App - CyberTrove Politeknik Negeri Bandung")
 
+   
     features = {
         'income': st.slider('Income - Annual income of the applicant (in decile form). Ranges between 0.1-0.9', min_value=0.0, max_value=1.0, step=0.01, key='income'),
         'name_email_similarity': st.slider('Name-Email Similarity - Metric of similarity between email and applicants name. Higher values represent higher similarity. Ranges between [0, 1].', min_value=0.0, max_value=1.0, step=0.01, key='name_email_similarity'),
@@ -47,14 +54,17 @@ def main():
 
     if st.button("Predict Fraud"):
         proba = predict_fraud_proba(input_values)
-        st.write(f"Probability of Fraud: {proba*100:.3f} %")
+        api_response = send_api_request(features, proba)
+
+        st.write(f"Probability of Fraud (Local Model): {proba*100:.3f} %")
+        st.write(f"API Response: {api_response}")
+
         if 0.4 <= proba <= 0.6:
             st.warning("Model Prediction: **Like Fraud** (Probability in the range 0.4 to 0.6)!")
         elif proba < 0.4:
             st.success("Model Prediction: **No Fraud Detected** (Probability less than 0.4).")
         else:
             st.error("Model Prediction: **Fraud Detected** (Probability greater than 0.6).")
-
 
 if __name__ == "__main__":
     main()
